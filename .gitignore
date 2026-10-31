@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+*.db
+
+# Floorplan run artifacts: DEFs are large and regenerable from the variant odbs.
+.floorplan_runs/**/*.def
+
+# VS Code extension build artifacts
+vscode-extension/node_modules/
+vscode-extension/out/
+vscode-extension/*.vsix
+
+# Local run outputs and caches (regenerable)
+.floorplan_runs/
+.orfs_cache/
+.claude/settings.local.json
+signoff/*
+!signoff/decks/
+sweep_logs/*
+!sweep_logs/figures/
+!sweep_logs/clock_sweep_report.md

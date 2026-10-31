@@ -1,0 +1,19 @@
+{
+  "_source": "reports/nangate45/ibex/clk_c746b95280d957e1/metadata.json (finish__timing__* keys only)",
+  "finish__timing__drv__hold_violation_count": 0,
+  "finish__timing__drv__max_cap": 10,
+  "finish__timing__drv__max_cap_limit": -0.124668,
+  "finish__timing__drv__max_fanout": 0,
+  "finish__timing__drv__max_fanout_limit": 0,
+  "finish__timing__drv__max_slew": 0,
+  "finish__timing__drv__max_slew_limit": 0.23911,
+  "finish__timing__drv__setup_violation_count": 1660,
+  "finish__timing__fmax": 591008000.0,
+  "finish__timing__fmax__clock__core_clock": 456848000.0,
+  "finish__timing__fmax__clock__vclk_core_clock": 591008000.0,
+  "finish__timing__hold__tns": 0,
+  "finish__timing__hold__ws": 0.0858427,
+  "finish__timing__setup__tns": -572.706,
+  "finish__timing__setup__ws": -0.42891,
+  "finish__timing__wns_percent_delay": -17.794465
+}

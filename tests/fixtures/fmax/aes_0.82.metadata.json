@@ -1,0 +1,18 @@
+{
+  "_source": "reports/nangate45/aes/clk_f9812c09c4b6213c/metadata.json (finish__timing__* keys only)",
+  "finish__timing__drv__hold_violation_count": 0,
+  "finish__timing__drv__max_cap": 0,
+  "finish__timing__drv__max_cap_limit": 0.0722513,
+  "finish__timing__drv__max_fanout": 0,
+  "finish__timing__drv__max_fanout_limit": 0,
+  "finish__timing__drv__max_slew": 0,
+  "finish__timing__drv__max_slew_limit": 0.394334,
+  "finish__timing__drv__setup_violation_count": 10,
+  "finish__timing__fmax": 1199590000.0,
+  "finish__timing__fmax__clock__clk": 1199590000.0,
+  "finish__timing__hold__tns": 0,
+  "finish__timing__hold__ws": 0.105641,
+  "finish__timing__setup__tns": -0.0601417,
+  "finish__timing__setup__ws": -0.0136153,
+  "finish__timing__wns_percent_delay": -1.366148
+}

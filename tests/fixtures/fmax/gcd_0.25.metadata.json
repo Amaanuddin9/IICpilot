@@ -1,0 +1,18 @@
+{
+  "_source": "reports/nangate45/gcd/clk_f990e122b1fb0614/metadata.json (finish__timing__* keys only)",
+  "finish__timing__drv__hold_violation_count": 0,
+  "finish__timing__drv__max_cap": 0,
+  "finish__timing__drv__max_cap_limit": 0.635009,
+  "finish__timing__drv__max_fanout": 0,
+  "finish__timing__drv__max_fanout_limit": 0,
+  "finish__timing__drv__max_slew": 0,
+  "finish__timing__drv__max_slew_limit": 0.690029,
+  "finish__timing__drv__setup_violation_count": 51,
+  "finish__timing__fmax": 2435340000.0,
+  "finish__timing__fmax__clock__core_clock": 2435340000.0,
+  "finish__timing__hold__tns": 0,
+  "finish__timing__hold__ws": 0.0920851,
+  "finish__timing__setup__tns": -7.17611,
+  "finish__timing__setup__ws": -0.16062,
+  "finish__timing__wns_percent_delay": -35.673034
+}

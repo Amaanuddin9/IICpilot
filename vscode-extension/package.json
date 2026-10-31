@@ -1,0 +1,96 @@
+{
+  "name": "adaptive-iicpilot",
+  "displayName": "Adaptive IICPilot",
+  "description": "Chat panel over the Adaptive IICPilot DSE/EDA agents, driven by a local Ollama model.",
+  "version": "1.0.0",
+  "publisher": "adaptive-iicpilot",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "adaptiveIicpilot",
+          "title": "Adaptive IICPilot",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "adaptiveIicpilot": [
+        {
+          "id": "adaptiveIicpilot.chat",
+          "name": "IICPilot Chat",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "adaptiveIicpilot.openChat",
+        "title": "Adaptive IICPilot: Open Chat"
+      },
+      {
+        "command": "adaptiveIicpilot.restartBackend",
+        "title": "Adaptive IICPilot: Restart Backend"
+      }
+    ],
+    "configuration": {
+      "title": "Adaptive IICPilot",
+      "properties": {
+        "adaptiveIicpilot.pythonPath": {
+          "type": "string",
+          "default": "python3",
+          "description": "Python interpreter used to run the backend."
+        },
+        "adaptiveIicpilot.repoPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the adaptive_iicpilot repo. Empty means the first workspace folder."
+        },
+        "adaptiveIicpilot.ollamaModel": {
+          "type": "string",
+          "default": "llama3.1:8b",
+          "description": "Ollama model name, passed to the backend as OLLAMA_MODEL."
+        },
+        "adaptiveIicpilot.backend": {
+          "type": "string",
+          "enum": [
+            "orfs",
+            "mock"
+          ],
+          "default": "orfs",
+          "description": "EDA backend, passed as ADAPTIVE_IICPILOT_BACKEND."
+        },
+        "adaptiveIicpilot.hitl": {
+          "type": "boolean",
+          "default": false,
+          "description": "Ask for approval of each DSE proposal before it is applied."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "package": "npm run compile && vsce package --no-dependencies --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.4.0"
+  },
+  "extensionKind": [
+    "workspace"
+  ]
+}

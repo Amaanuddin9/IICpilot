@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adaptive IICPilot - EDA Flow Orchestrator</title>
+  <style>
+    :root {
+      --eda-blue: #1a446c;
+      --eda-blue-dark: #123250;
+      --eda-blue-light: #255d91;
+      --tab-bg: #e2e8f0;
+      --tab-active: #ffffff;
+      --border-color: #cbd5e1;
+      --term-bg: #0b1120;
+      --term-text: #e2e8f0;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-amber: #f59e0b;
+      --accent-cyan: #0ea5e9;
+      --accent-purple: #8b5cf6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f1f5f9;
+      color: #1e293b;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* TOP BAR - EDA Playground Aesthetic */
+    .topbar {
+      background: linear-gradient(180deg, var(--eda-blue) 0%, var(--eda-blue-dark) 100%);
+      color: #ffffff;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background: #38bdf8;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 14px;
+      color: #0f172a;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-tag {
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 2px 8px;
+      border-radius: 12px;
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-run {
+      background: #16a34a;
+      color: #ffffff;
+      border-color: #15803d;
+      padding: 7px 18px;
+      font-size: 14px;
+    }
+    .btn-run:hover:not(:disabled) {
+      background: #15803d;
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.4);
+    }
+
+    .btn-reset {
+      background: #334155;
+      color: #f8fafc;
+      border-color: #475569;
+    }
+    .btn-reset:hover:not(:disabled) {
+      background: #475569;
+    }
+
+    .btn-preset {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.2);
+      font-size: 12px;
+      padding: 5px 10px;
+    }
+    .btn-preset:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .mode-toggle {
+      display: flex;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 6px;
+      padding: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .mode-btn {
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      background: transparent;
+      color: #cbd5e1;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .mode-btn.active {
+      background: #ffffff;
+      color: var(--eda-blue);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .indicator-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #94a3b8;
+    }
+    .indicator-dot.active {
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+    .indicator-dot.warn {
+      background: #f59e0b;
+      box-shadow: 0 0 8px #f59e0b;
+    }
+
+    /* WORKSPACE LAYOUT */
+    .workspace {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .panes-upper {
+      display: flex;
+      flex: 1;
+      min-height: 280px;
+      overflow: hidden;
+      border-bottom: 3px solid #cbd5e1;
+    }
+
+    .editor-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .editor-pane:first-child {
+      border-right: 2px solid #cbd5e1;
+    }
+
+    .pane-tabs {
+      height: 36px;
+      background: var(--tab-bg);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 8px;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .tab {
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      background: #cbd5e1;
+      border-radius: 6px 6px 0 0;
+      border: 1px solid var(--border-color);
+      border-bottom: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab.active {
+      background: var(--tab-active);
+      color: var(--eda-blue);
+      border-top: 3px solid var(--eda-blue);
+      padding-top: 4px;
+    }
+
+    .tab-badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: #e2e8f0;
+      color: #64748b;
+    }
+
+    .pane-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    /* TASK CONFIG FORM */
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .form-label span.unit {
+      color: #64748b;
+      font-weight: 400;
+    }
+
+    .form-input, .form-select {
+      padding: 7px 10px;
+      font-size: 13px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #ffffff;
+      color: #0f172a;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--eda-blue);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(26, 68, 108, 0.15);
+    }
+
+    .form-input[readonly] {
+      background: #f8fafc;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+
+    .knobs-header {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #cbd5e1;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--eda-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .demo-callout {
+      margin-top: 12px;
+      background: #eff6ff;
+      border-left: 4px solid var(--eda-blue);
+      padding: 10px 12px;
+      border-radius: 0 4px 4px 0;
+      font-size: 12px;
+      color: #1e3a8a;
+      line-height: 1.4;
+    }
+
+    /* PREVIEW PANE */
+    .preview-container {
+      height: 100%;
+      background: #0f172a;
+      border-radius: 4px;
+      padding: 12px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #e2e8f0;
+      overflow-y: auto;
+      white-space: pre;
+    }
+
+    .hl-comment { color: #64748b; font-style: italic; }
+    .hl-key { color: #38bdf8; font-weight: 600; }
+    .hl-val { color: #facc15; }
+    .hl-cmd { color: #a78bfa; font-weight: 600; }
+    .hl-flag { color: #f472b6; }
+
+    /* LOWER LOG PANE */
+    .pane-lower {
+      height: 45vh;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      background: var(--term-bg);
+      border-top: 1px solid #334155;
+    }
+
+    .log-header {
+      height: 34px;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .log-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .log-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .log-btn:hover { color: #ffffff; }
+
+    .log-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--term-text);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* CLAUDE-CODE STYLE LOG BLOCKS */
+    .log-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      word-break: break-word;
+      padding: 2px 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+      width: 70px;
+      text-align: center;
+    }
+
+    .badge-control { background: #334155; color: #f8fafc; border: 1px solid #475569; }
+    .badge-eda { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.4); }
+    .badge-dse { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-memory { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-llm { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); }
+
+    .line-text {
+      flex: 1;
+      color: #cbd5e1;
+    }
+
+    .line-failure {
+      background: rgba(239, 68, 68, 0.15);
+      border-left: 3px solid var(--accent-red);
+      padding: 4px 8px;
+      border-radius: 0 4px 4px 0;
+      color: #fca5a5;
+    }
+
+    .line-success {
+      background: rgba(16, 185, 129, 0.15);
+      border-left: 3px solid var(--accent-green);
+      padding: 4px 8px;
+      border-radius: 0 4px 4px 0;
+      color: #86efac;
+    }
+
+    .line-warm {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid #10b981;
+      padding: 6px 10px;
+      border-radius: 4px;
+      color: #a7f3d0;
+      font-weight: 600;
+    }
+
+    .line-cold {
+      background: rgba(148, 163, 184, 0.1);
+      border-left: 3px solid #94a3b8;
+      padding: 4px 8px;
+      border-radius: 0 4px 4px 0;
+      color: #94a3b8;
+    }
+
+    /* HITL PROPOSAL CARD */
+    .proposal-card {
+      margin: 10px 0;
+      background: #1e293b;
+      border: 2px solid var(--accent-amber);
+      border-radius: 6px;
+      padding: 14px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      animation: pulse-border 2s infinite;
+    }
+
+    @keyframes pulse-border {
+      0% { border-color: rgba(245, 158, 11, 0.8); }
+      50% { border-color: rgba(245, 158, 11, 0.3); }
+      100% { border-color: rgba(245, 158, 11, 0.8); }
+    }
+
+    .proposal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 8px;
+    }
+
+    .proposal-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-seeded {
+      background: #8b5cf6;
+      color: #ffffff;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    .proposal-rationale {
+      font-size: 13px;
+      color: #f1f5f9;
+      line-height: 1.4;
+    }
+
+    .proposal-diff-box {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 10px;
+      font-family: inherit;
+    }
+
+    .diff-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .edit-inputs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .diff-field {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #1e293b;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .diff-field-name {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    .diff-input {
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 3px;
+      color: #facc15;
+      padding: 2px 6px;
+      font-family: inherit;
+      font-size: 12px;
+      width: 70px;
+    }
+
+    .proposal-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .btn-accept {
+      background: #16a34a;
+      color: #ffffff;
+      padding: 6px 16px;
+    }
+    .btn-accept:hover { background: #15803d; }
+
+    .btn-edit {
+      background: #0284c7;
+      color: #ffffff;
+      padding: 6px 14px;
+    }
+    .btn-edit:hover { background: #0369a1; }
+
+    .btn-reject {
+      background: #dc2626;
+      color: #ffffff;
+      padding: 6px 14px;
+    }
+    .btn-reject:hover { background: #b91c1c; }
+
+    .decision-banner {
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    /* FINAL REPORT SUMMARY CARD */
+    .report-card {
+      margin: 14px 0 6px 0;
+      background: #1e293b;
+      border: 2px solid #38bdf8;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(14, 165, 233, 0.2);
+    }
+
+    .report-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .report-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .report-badges {
+      display: flex;
+      gap: 8px;
+    }
+
+    .pill-warm {
+      background: #10b981;
+      color: #ffffff;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .pill-cold {
+      background: #64748b;
+      color: #ffffff;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .pill-status-ok {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid #10b981;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .metric-tile {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-label {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: #f8fafc;
+    }
+
+    .metric-val.green { color: #34d399; }
+    .metric-val.red { color: #f87171; }
+    .metric-val.amber { color: #fbbf24; }
+
+    .ppa-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 6px;
+      background: #0f172a;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .ppa-table th, .ppa-table td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid #334155;
+    }
+
+    .ppa-table th {
+      background: #1e293b;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .ppa-table td {
+      color: #e2e8f0;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #ffffff;
+      border: 1px solid #38bdf8;
+      padding: 10px 18px;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 100;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <span class="brand-title">Adaptive IICPilot</span>
+        <span class="brand-tag">EDA Orchestrator</span>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <!-- Mode Toggle -->
+      <div class="mode-toggle" title="Select exploration control mode">
+        <button id="btn-mode-auto" class="mode-btn active" onclick="setMode('auto')">Auto</button>
+        <button id="btn-mode-hitl" class="mode-btn" onclick="setMode('hitl')">HITL</button>
+      </div>
+
+      <!-- Preset Quick Pickers -->
+      <button class="btn btn-preset" onclick="applyPreset('aggressive')" title="Step 1 of Demo: 72% util, 0.95 density">
+        ⚡ Demo Step 1 (Aggressive)
+      </button>
+      <button class="btn btn-preset" onclick="applyPreset('default')" title="Default conservative config">
+        Standard
+      </button>
+
+      <!-- Run Button -->
+      <button id="btn-run" class="btn btn-run" onclick="startRun()">
+        <span id="run-icon">▶</span>
+        <span id="run-label">Run</span>
+      </button>
+
+      <!-- Reset Memory -->
+      <button id="btn-reset-memory" class="btn btn-reset" onclick="resetMemory()" title="Reset persisted cross-session memory">
+        ↺ Reset memory
+      </button>
+
+      <!-- Memory Live Status -->
+      <div id="memory-badge" class="status-badge" title="Status of persistent memory for current design">
+        <span id="memory-indicator" class="indicator-dot"></span>
+        <span id="memory-status-text">Memory: Checking...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="workspace">
+    
+    <!-- UPPER HALF: TWO SIDE-BY-SIDE PANES -->
+    <section class="panes-upper">
+      
+      <!-- LEFT PANE: TASK CONFIG -->
+      <div class="editor-pane">
+        <div class="pane-tabs">
+          <div class="tab active">
+            <span>⚙ task.config</span>
+            <span class="tab-badge">Inputs</span>
+          </div>
+        </div>
+
+        <div class="pane-content">
+          <div class="config-grid">
+            <div class="form-group">
+              <label class="form-label" for="cfg-design">Design Name</label>
+              <select id="cfg-design" class="form-select" onchange="onDesignChanged()">
+                <option value="picorv32" selected>picorv32 (RISC-V CPU)</option>
+                <option value="gcd">gcd (Greatest Common Divisor)</option>
+                <option value="ibex">ibex (RISC-V Core)</option>
+                <option value="aes">aes (AES Cryptographic)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cfg-tech">Technology Platform</label>
+              <input id="cfg-tech" class="form-input" type="text" value="nangate45" readonly>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cfg-target-stage">Target EDA Stage</label>
+              <select id="cfg-target-stage" class="form-select" onchange="updatePreview()">
+                <option value="synth">synth (Synthesis)</option>
+                <option value="floorplan">floorplan (Floorplanning)</option>
+                <option value="place">place (Placement)</option>
+                <option value="cts">cts (Clock Tree Synth)</option>
+                <option value="route" selected>route (Routing)</option>
+                <option value="finish">finish (Signoff/Finishing)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cfg-max-iters">Max DSE Iterations</label>
+              <input id="cfg-max-iters" class="form-input" type="number" min="1" max="20" value="6" onchange="updatePreview()">
+            </div>
+
+            <div class="knobs-header full-width">
+              <span>Optimization Tuning Knobs</span>
+              <span style="font-size: 11px; font-weight: 400; color: #64748b;">MockORFS Model Seams</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cfg-clock">Clock Period <span class="unit">(ns)</span></label>
+              <input id="cfg-clock" class="form-input" type="number" step="0.1" value="2.5" oninput="updatePreview()">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cfg-util">Core Utilization <span class="unit">(%)</span></label>
+              <input id="cfg-util" class="form-input" type="number" step="1.0" min="5" max="95" value="72.0" oninput="updatePreview()">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cfg-density">Placement Density <span class="unit">(0..1)</span></label>
+              <input id="cfg-density" class="form-input" type="number" step="0.01" min="0.1" max="1.0" value="0.95" oninput="updatePreview()">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cfg-aspect">Aspect Ratio <span class="unit">(H/W)</span></label>
+              <input id="cfg-aspect" class="form-input" type="number" step="0.1" min="0.2" max="5.0" value="1.0" oninput="updatePreview()">
+            </div>
+
+            <div class="demo-callout full-width">
+              <strong>Jury Demo Flow:</strong><br>
+              1. Run <code>picorv32</code> with <strong>72% util & 0.95 density</strong> in Auto mode ➔ Routing failure ➔ DSE recovers ➔ Memory records clean config.<br>
+              2. Run the <strong>same task again</strong> ➔ Instant warm start, 0 failures, 0 congestion fights!<br>
+              3. Click <strong>Reset memory</strong> ➔ Memory clears back to cold.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANE: FLOW PREVIEW -->
+      <div class="editor-pane">
+        <div class="pane-tabs">
+          <div class="tab active">
+            <span>📄 flow.preview</span>
+            <span class="tab-badge">ORFS config.mk / SDC</span>
+          </div>
+        </div>
+
+        <div class="pane-content" style="padding: 10px;">
+          <div id="preview-code" class="preview-container"></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- LOWER HALF: LOG CONSOLE & HITL PROPOSALS -->
+    <section class="pane-lower">
+      <div class="log-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>📋 Log / Live Run Output</span>
+          <span id="run-status-text" style="color: #94a3b8; font-weight: 400; font-size: 11px;">(Ready)</span>
+        </div>
+        <div class="log-controls">
+          <button class="log-btn" onclick="clearLog()">⌫ Clear Log</button>
+          <label style="font-size: 11px; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+            <input type="checkbox" id="autoscroll" checked> Auto-scroll
+          </label>
+        </div>
+      </div>
+
+      <div id="log-container" class="log-content">
+        <div class="log-line" style="color: #64748b;">
+          <span class="badge badge-control">System</span>
+          <span class="line-text">Ready. Configure task parameters and click "Run" to launch the Adaptive IICPilot orchestrator.</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="toast" class="toast">Action completed</div>
+
+  <script>
+    // State
+    let currentMode = "auto";
+    let activeRunId = null;
+    let activeEventSource = null;
+    let isRunning = false;
+
+    // Presets
+    const PRESETS = {
+      aggressive: {
+        design: "picorv32",
+        clock_period_ns: 2.5,
+        core_utilization: 72.0,
+        placement_density: 0.95,
+        aspect_ratio: 1.0,
+        max_iters: 6
+      },
+      default: {
+        design: "picorv32",
+        clock_period_ns: 2.5,
+        core_utilization: 45.0,
+        placement_density: 0.60,
+        aspect_ratio: 1.0,
+        max_iters: 6
+      }
+    };
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById("btn-mode-auto").classList.toggle("active", mode === "auto");
+      document.getElementById("btn-mode-hitl").classList.toggle("active", mode === "hitl");
+      showToast(`Mode switched to: ${mode.toUpperCase()}`);
+    }
+
+    function applyPreset(name) {
+      const p = PRESETS[name];
+      if (!p) return;
+      document.getElementById("cfg-design").value = p.design;
+      document.getElementById("cfg-clock").value = p.clock_period_ns;
+      document.getElementById("cfg-util").value = p.core_utilization;
+      document.getElementById("cfg-density").value = p.placement_density;
+      document.getElementById("cfg-aspect").value = p.aspect_ratio;
+      document.getElementById("cfg-max-iters").value = p.max_iters;
+      updatePreview();
+      checkMemoryStatus();
+      showToast(`Applied preset: ${name}`);
+    }
+
+    function onDesignChanged() {
+      updatePreview();
+      checkMemoryStatus();
+    }
+
+    function updatePreview() {
+      const design = document.getElementById("cfg-design").value;
+      const tech = document.getElementById("cfg-tech").value;
+      const stage = document.getElementById("cfg-target-stage").value;
+      const iters = document.getElementById("cfg-max-iters").value;
+      const clock = parseFloat(document.getElementById("cfg-clock").value) || 2.5;
+      const util = parseFloat(document.getElementById("cfg-util").value) || 72.0;
+      const density = parseFloat(document.getElementById("cfg-density").value) || 0.95;
+      const aspect = parseFloat(document.getElementById("cfg-aspect").value) || 1.0;
+
+      const code = `<span class="hl-comment"># OpenROAD-flow-scripts (ORFS) configuration preview</span>
+<span class="hl-comment"># Live generated from task.config knobs</span>
+
+<span class="hl-key">export DESIGN_NAME</span>       = <span class="hl-val">${design}</span>
+<span class="hl-key">export PLATFORM</span>          = <span class="hl-val">${tech}</span>
+<span class="hl-key">export CORE_UTILIZATION</span>  = <span class="hl-val">${util.toFixed(1)}</span>
+<span class="hl-key">export PLACE_DENSITY</span>     = <span class="hl-val">${density.toFixed(2)}</span>
+<span class="hl-key">export CORE_ASPECT_RATIO</span> = <span class="hl-val">${aspect.toFixed(2)}</span>
+<span class="hl-key">export TARGET_STAGE</span>      = <span class="hl-val">${stage}</span>
+<span class="hl-key">export MAX_DSE_ITERS</span>     = <span class="hl-val">${iters}</span>
+
+<span class="hl-comment"># Timing Constraints (constraints.sdc)</span>
+<span class="hl-cmd">create_clock</span> <span class="hl-flag">-name</span> core_clock <span class="hl-flag">-period</span> <span class="hl-val">${clock.toFixed(3)}</span> [get_ports clk]
+<span class="hl-cmd">set_clock_uncertainty</span> <span class="hl-val">0.05</span> [get_clocks core_clock]
+<span class="hl-cmd">set_input_delay</span> <span class="hl-val">0.20</span> <span class="hl-flag">-clock</span> core_clock [all_inputs]
+<span class="hl-cmd">set_output_delay</span> <span class="hl-val">0.20</span> <span class="hl-flag">-clock</span> core_clock [all_outputs]`;
+
+      document.getElementById("preview-code").innerHTML = code;
+    }
+
+    async function checkMemoryStatus() {
+      try {
+        const res = await fetch("/api/memory");
+        if (!res.ok) return;
+        const data = await res.json();
+        const design = document.getElementById("cfg-design").value;
+        const tech = document.getElementById("cfg-tech").value;
+        const key = `${design}::${tech}`;
+        const entry = data.designs && data.designs[key];
+
+        const ind = document.getElementById("memory-indicator");
+        const text = document.getElementById("memory-status-text");
+
+        if (entry && entry.has_best_config) {
+          ind.className = "indicator-dot active";
+          const u = entry.best_config.core_utilization;
+          const d = entry.best_config.placement_density;
+          text.innerHTML = `Memory: <strong style="color:#34d399;">WARM</strong> (${design} util=${u}% dens=${d})`;
+        } else {
+          ind.className = "indicator-dot";
+          text.innerHTML = `Memory: <span style="color:#94a3b8;">COLD</span> (No prior runs)`;
+        }
+      } catch (err) {
+        console.error("Failed to check memory status:", err);
+      }
+    }
+
+    async function resetMemory() {
+      try {
+        const res = await fetch("/reset-memory", { method: "POST" });
+        if (res.ok) {
+          showToast("Memory successfully reset to cold state!");
+          appendLogLine("System", "Memory reset to cold state. Next runs will start without stored heuristics.", "badge-control line-cold");
+          checkMemoryStatus();
+        }
+      } catch (err) {
+        showToast("Error resetting memory: " + err);
+      }
+    }
+
+    function clearLog() {
+      document.getElementById("log-container").innerHTML = "";
+    }
+
+    function appendLogLine(agent, text, customClass = "") {
+      const container = document.getElementById("log-container");
+      const line = document.createElement("div");
+      line.className = "log-line " + customClass;
+
+      let badgeClass = "badge-control";
+      const ag = agent.toLowerCase();
+      if (ag === "eda") badgeClass = "badge-eda";
+      else if (ag === "dse") badgeClass = "badge-dse";
+      else if (ag === "memory") badgeClass = "badge-memory";
+      else if (ag === "llm") badgeClass = "badge-llm";
+
+      line.innerHTML = `<span class="badge ${badgeClass}">${agent}</span><span class="line-text">${escapeHtml(text)}</span>`;
+      container.appendChild(line);
+
+      if (document.getElementById("autoscroll").checked) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    function parseAndRenderLog(text) {
+      let agent = "Control";
+      let content = text;
+      let extraClass = "";
+
+      if (text.startsWith("[") && text.includes("]")) {
+        const end = text.indexOf("]");
+        agent = text.substring(1, end);
+        content = text.substring(end + 1).trim();
+      }
+
+      if (content.includes("FAILURE at route") || content.includes("ERROR")) {
+        extraClass = "line-failure";
+      } else if (content.includes("OK reached")) {
+        extraClass = "line-success";
+      } else if (content.includes("WARM seed")) {
+        extraClass = "line-warm";
+      } else if (content.includes("COLD seed")) {
+        extraClass = "line-cold";
+      }
+
+      appendLogLine(agent, content, extraClass);
+    }
+
+    function renderProposalCard(eventData, runId) {
+      const container = document.getElementById("log-container");
+      const card = document.createElement("div");
+      card.className = "proposal-card";
+      card.id = `proposal-${Date.now()}`;
+
+      const seededBadge = eventData.seeded_from_memory 
+        ? `<span class="badge-seeded">⚡ [memory-seeded]</span>` 
+        : "";
+
+      let diffInputs = "";
+      for (const [k, v] of Object.entries(eventData.changes || {})) {
+        diffInputs += `
+          <div class="diff-field">
+            <span class="diff-field-name">${k}:</span>
+            <input type="text" class="diff-input" id="input-${k}" value="${v}">
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="proposal-header">
+          <div class="proposal-title">
+            <span>🤖 HITL Proposal Gate</span>
+            <span style="font-size: 11px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: #cbd5e1;">${eventData.triggered_by}</span>
+            ${seededBadge}
+          </div>
+          <span style="font-size: 11px; color: #fbbf24; font-weight: 600;">Action Required</span>
+        </div>
+
+        <div class="proposal-rationale">
+          ${escapeHtml(eventData.rationale)}
+        </div>
+
+        <div class="proposal-diff-box">
+          <div class="diff-title">Proposed Changes (editable before apply):</div>
+          <div class="edit-inputs">
+            ${diffInputs}
+          </div>
+        </div>
+
+        <div class="proposal-actions" id="actions-${card.id}">
+          <button class="btn btn-accept" onclick="sendDecision('${runId}', 'accept', '${card.id}')">✓ Accept</button>
+          <button class="btn btn-edit" onclick="sendDecision('${runId}', 'edit', '${card.id}')">✎ Edit & Apply</button>
+          <button class="btn btn-reject" onclick="sendDecision('${runId}', 'reject', '${card.id}')">✗ Reject</button>
+        </div>
+      `;
+
+      container.appendChild(card);
+      if (document.getElementById("autoscroll").checked) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    async function sendDecision(runId, decision, cardId) {
+      const card = document.getElementById(cardId);
+      const actionsDiv = document.getElementById(`actions-${cardId}`);
+
+      let changes = {};
+      if (decision === "edit") {
+        const inputs = card.querySelectorAll(".diff-input");
+        inputs.forEach(inp => {
+          const key = inp.id.replace("input-", "");
+          const num = parseFloat(inp.value);
+          changes[key] = isNaN(num) ? inp.value : num;
+        });
+      }
+
+      try {
+        const res = await fetch(`/decide/${runId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ decision, changes })
+        });
+
+        if (res.ok) {
+          actionsDiv.innerHTML = `
+            <div class="decision-banner" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7;">
+              Decision recorded: <strong>${decision.toUpperCase()}</strong>${decision === 'edit' ? ' with edits ' + JSON.stringify(changes) : ''}
+            </div>
+          `;
+          showToast(`Decision: ${decision.toUpperCase()}`);
+        }
+      } catch (err) {
+        showToast("Error sending decision: " + err);
+      }
+    }
+
+    function renderReportCard(report) {
+      const container = document.getElementById("log-container");
+      const card = document.createElement("div");
+      card.className = "report-card";
+
+      const seedBadge = report.seeded
+        ? `<span class="pill-warm">WARM START (Memory Seeded)</span>`
+        : `<span class="pill-cold">COLD START (Unseeded)</span>`;
+
+      const statusBadge = report.ok
+        ? `<span class="pill-status-ok">STATUS: OK</span>`
+        : `<span class="pill-status-ok" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: #ef4444;">STATUS: FAILED</span>`;
+
+      const ppaScoreFormatted = (typeof report.ppa_score === "number")
+        ? report.ppa_score.toExponential(3)
+        : report.ppa_score;
+
+      card.innerHTML = `
+        <div class="report-header">
+          <div class="report-title">
+            <span>🏁 Run Report Summary</span>
+          </div>
+          <div class="report-badges">
+            ${seedBadge}
+            ${statusBadge}
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-tile">
+            <span class="metric-label">Flow Runs</span>
+            <span class="metric-val ${report.flow_runs <= 2 ? 'green' : ''}">${report.flow_runs}</span>
+          </div>
+          <div class="metric-tile">
+            <span class="metric-label">Failures</span>
+            <span class="metric-val ${report.failures === 0 ? 'green' : 'red'}">${report.failures}</span>
+          </div>
+          <div class="metric-tile">
+            <span class="metric-label">Congestion Fights</span>
+            <span class="metric-val ${report.congestion_fights === 0 ? 'green' : 'amber'}">${report.congestion_fights}</span>
+          </div>
+          <div class="metric-tile">
+            <span class="metric-label">Target Stage</span>
+            <span class="metric-val" style="font-size: 16px; text-transform: uppercase;">${report.reached_stage}</span>
+          </div>
+        </div>
+
+        <table class="ppa-table">
+          <thead>
+            <tr>
+              <th>Final Area</th>
+              <th>Power</th>
+              <th>Timing (WNS)</th>
+              <th>Routing Congestion</th>
+              <th>PPA Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>${report.area_um2}</strong> um²</td>
+              <td><strong>${report.power_mw}</strong> mW</td>
+              <td style="color: ${report.wns_ns >= 0 ? '#34d399' : '#f87171'}; font-weight: 700;">
+                ${report.wns_ns >= 0 ? '+' : ''}${report.wns_ns} ns
+              </td>
+              <td>${report.congestion}</td>
+              <td style="color: #38bdf8; font-weight: 700;">${ppaScoreFormatted}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        ${report.seeded ? `
+          <div style="margin-top: 10px; font-size: 12px; color: #a7f3d0; background: rgba(16, 185, 129, 0.15); padding: 8px 12px; border-radius: 4px; border-left: 3px solid #10b981;">
+            ✨ <strong>Cross-Session Memory Win:</strong> Zero routing failures and 0 congestion fights! DSE resumed directly from the learned clean configuration.
+          </div>
+        ` : `
+          <div style="margin-top: 10px; font-size: 12px; color: #cbd5e1; background: rgba(51, 65, 85, 0.4); padding: 8px 12px; border-radius: 4px; border-left: 3px solid #64748b;">
+            ℹ <strong>Cold Exploration:</strong> Recovered from initial routing failure across ${report.flow_runs} flow runs. Results are now stored in persistent memory for the next run!
+          </div>
+        `}
+      `;
+
+      container.appendChild(card);
+      if (document.getElementById("autoscroll").checked) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    async function startRun() {
+      if (isRunning) return;
+
+      const btn = document.getElementById("btn-run");
+      const runLabel = document.getElementById("run-label");
+      const runIcon = document.getElementById("run-icon");
+      const statusText = document.getElementById("run-status-text");
+
+      const body = {
+        design: document.getElementById("cfg-design").value,
+        tech: document.getElementById("cfg-tech").value,
+        target_stage: document.getElementById("cfg-target-stage").value,
+        clock_period_ns: parseFloat(document.getElementById("cfg-clock").value),
+        core_utilization: parseFloat(document.getElementById("cfg-util").value),
+        placement_density: parseFloat(document.getElementById("cfg-density").value),
+        aspect_ratio: parseFloat(document.getElementById("cfg-aspect").value),
+        max_iters: parseInt(document.getElementById("cfg-max-iters").value),
+        mode: currentMode
+      };
+
+      try {
+        isRunning = true;
+        btn.disabled = true;
+        runLabel.innerText = "Running...";
+        runIcon.innerText = "⏳";
+        statusText.innerText = "(Running orchestrator...)";
+
+        appendLogLine("Control", `Starting execution: ${body.design} (mode=${body.mode.toUpperCase()})...`, "line-warm");
+
+        const res = await fetch("/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to start run: " + res.statusText);
+        }
+
+        const data = await res.json();
+        activeRunId = data.run_id;
+
+        // Open SSE Stream
+        connectStream(activeRunId);
+
+      } catch (err) {
+        isRunning = false;
+        btn.disabled = false;
+        runLabel.innerText = "Run";
+        runIcon.innerText = "▶";
+        statusText.innerText = "(Error)";
+        appendLogLine("Control", `Failed to start run: ${err}`, "line-failure");
+        showToast("Run error: " + err);
+      }
+    }
+
+    function connectStream(runId) {
+      if (activeEventSource) {
+        activeEventSource.close();
+      }
+
+      const es = new EventSource(`/stream/${runId}`);
+      activeEventSource = es;
+
+      es.onmessage = (event) => {
+        try {
+          const item = JSON.parse(event.data);
+          if (!item) return;
+
+          if (item.type === "log") {
+            parseAndRenderLog(item.text);
+          } else if (item.type === "proposal") {
+            renderProposalCard(item, runId);
+          } else if (item.type === "report") {
+            renderReportCard(item);
+            checkMemoryStatus();
+          } else if (item.type === "stream_end") {
+            finishRun();
+          } else if (item.type === "error") {
+            appendLogLine("Control", `Run error: ${item.error}`, "line-failure");
+            finishRun();
+          }
+        } catch (err) {
+          console.error("Failed to parse SSE line:", err, event.data);
+        }
+      };
+
+      es.onerror = (err) => {
+        console.warn("SSE connection closed or error:", err);
+        finishRun();
+      };
+    }
+
+    function finishRun() {
+      if (activeEventSource) {
+        activeEventSource.close();
+        activeEventSource = null;
+      }
+      isRunning = false;
+      const btn = document.getElementById("btn-run");
+      const runLabel = document.getElementById("run-label");
+      const runIcon = document.getElementById("run-icon");
+      const statusText = document.getElementById("run-status-text");
+
+      btn.disabled = false;
+      runLabel.innerText = "Run";
+      runIcon.innerText = "▶";
+      statusText.innerText = "(Completed)";
+      checkMemoryStatus();
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.innerText = msg;
+      toast.classList.add("show");
+      setTimeout(() => { toast.classList.remove("show"); }, 3000);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Initialize on page load
+    window.addEventListener("DOMContentLoaded", () => {
+      updatePreview();
+      checkMemoryStatus();
+    });
+  </script>
+</body>
+</html>
